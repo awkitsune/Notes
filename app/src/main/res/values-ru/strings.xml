@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_export">Экспортировать</string>
+    <string name="hint_theme">Тема</string>
+    <string name="hint_description">Содержание</string>
+    <string name="action_import">Импортировать</string>
+    <string name="action_about">О программе</string>
+    <string name="error_import">Невозможно импортировать файл</string>
+    <string name="message_export">Успешно экспортировано в</string>
+    <string name="error_export">Невозможно импортировать файл</string>
+    <string name="message_import">Успешно импортировано</string>
+</resources>

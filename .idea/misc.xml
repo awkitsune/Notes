@@ -3,11 +3,15 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/Users/vladi/AndroidStudioProjects/Notes/app/src/main/res/drawable-v24/ic_launcher_foreground.xml" value="0.3828125" />
+        <entry key="..\:/Users/vladi/AndroidStudioProjects/Notes/app/src/main/res/drawable/ic_launcher_background.xml" value="0.3828125" />
+        <entry key="..\:/Users/vladi/AndroidStudioProjects/Notes/app/src/main/res/drawable/launch_screen.xml" value="0.221875" />
         <entry key="..\:/Users/vladi/AndroidStudioProjects/Notes/app/src/main/res/layout/activity_main.xml" value="0.25" />
         <entry key="..\:/Users/vladi/AndroidStudioProjects/Notes/app/src/main/res/layout/fragment_add_note_dialog_list_dialog.xml" value="0.34594594594594597" />
         <entry key="..\:/Users/vladi/AndroidStudioProjects/Notes/app/src/main/res/layout/fragment_add_note_dialog_list_dialog_item.xml" value="0.371875" />
         <entry key="..\:/Users/vladi/AndroidStudioProjects/Notes/app/src/main/res/layout/note_item.xml" value="0.371875" />
         <entry key="..\:/Users/vladi/AndroidStudioProjects/Notes/app/src/main/res/menu/main_menu.xml" value="0.371875" />
+        <entry key="..\:/Users/vladi/AndroidStudioProjects/Notes/app/src/main/res/xml/provider_paths.xml" value="0.36666666666666664" />
       </map>
     </option>
   </component>

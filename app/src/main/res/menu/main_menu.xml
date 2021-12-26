@@ -5,9 +5,12 @@
     <item
         android:id="@+id/action_info"
         android:icon="@drawable/ic_outline_info_24"
-        android:title="About"
+        android:title="@string/action_about"
         app:showAsAction="always" />
     <item
         android:id="@+id/action_export"
         android:title="@string/action_export" />
+    <item
+        android:id="@+id/action_import"
+        android:title="@string/action_import" />
 </menu>

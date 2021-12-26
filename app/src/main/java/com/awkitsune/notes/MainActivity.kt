@@ -1,86 +1,156 @@
 package com.awkitsune.notes
 
+import android.app.Dialog
+import android.content.Context
+import android.content.DialogInterface
+import android.content.SharedPreferences
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
-import android.widget.Adapter
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import java.util.*
-import kotlin.collections.ArrayList
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.lifecycle.lifecycleScope
-import androidx.room.Room
-import androidx.room.RoomDatabase
 import kotlinx.coroutines.*
-import kotlin.coroutines.CoroutineContext
+
+import android.os.Environment
+
+import android.net.Uri
+
+import android.util.Log
 import android.widget.Toast
-
-
-
+import androidx.activity.result.contract.ActivityResultContracts
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.snackbar.Snackbar
+import java.io.*
+import java.lang.StringBuilder
 
 
 class MainActivity : AppCompatActivity() {
     private lateinit var adapter: NoteAdapter
     private lateinit var recyclerViewNotes: RecyclerView
-    private lateinit var db: AppDatabase
+    private lateinit var settings: SharedPreferences
 
+    private lateinit var view: View
+    private lateinit var dialog: Dialog
+
+    @ExperimentalStdlibApi
+    private val selectFileToImportResult = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let {
+            try {
+                val inputStream = contentResolver.openInputStream(uri)
+
+                val bufferedReader = BufferedReader(InputStreamReader(inputStream))
+                var stringBuilder = StringBuilder()
+                var line = bufferedReader.readLine()
+                while (line != null) {
+                    stringBuilder.append(line).append("\n")
+                    line = bufferedReader.readLine()
+                }
+                bufferedReader.close()
+
+                val result = stringBuilder.toString()
+
+                NotesLifecycle.importNotes(result)
+                NotesLifecycle.saveNotes()
+                loadNotes()
+                Toast.makeText(this@MainActivity, getString(R.string.message_import) + "\n" + uri.path, Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Log.e("shitty files", e.toString())
+                Toast.makeText(this@MainActivity, getString(R.string.error_import), Toast.LENGTH_SHORT).show()
+            }
+
+        }
+    }
+    @ExperimentalStdlibApi
+    private fun selectFileToImport() = selectFileToImportResult.launch("application/octet-stream")
+
+    @ExperimentalStdlibApi
     override fun onCreate(savedInstanceState: Bundle?) {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+        settings = getSharedPreferences(Const.SETTINGS_SHARED_PREFERENCES, Context.MODE_PRIVATE)
+        NotesLifecycle.notes_save = getSharedPreferences(Const.NOTES_SHARED_PREFERENCES, Context.MODE_PRIVATE)
+        NotesLifecycle.loadNotes()
+
+        setTheme(R.style.Theme_Notes)
 
         super.onCreate(savedInstanceState)
+
         setContentView(R.layout.activity_main)
         setSupportActionBar(findViewById(R.id.toolbar))
 
-        db = Room.databaseBuilder(
-            applicationContext, AppDatabase::class.java,
-            "notes-database").build()
+        view = layoutInflater.inflate(R.layout.fragment_add_note_dialog_list_dialog, null)
+        dialog = BottomSheetDialog(this@MainActivity)
+
         setListeners()
         loadNotes()
     }
 
-    override fun onStart() {
-        super.onStart()
-    }
-
     private fun loadNotes() {
-        val notesResult = CoroutineScope(Dispatchers.IO).async {
-            ArrayList(db.noteDao.getAllNotes())
-        }
-        CoroutineScope(Dispatchers.IO).launch{
-            NotesLifecycle.notes = notesResult.await()
+        adapter = NoteAdapter(this@MainActivity)
+        recyclerViewNotes = findViewById(R.id.recyclerViewNotes)
 
-            adapter = NoteAdapter(this@MainActivity)
-            recyclerViewNotes = findViewById(R.id.recyclerViewNotes)
-
-            recyclerViewNotes.post {
-                recyclerViewNotes.adapter = adapter
-            }
-        }
+        recyclerViewNotes.adapter = adapter
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-        var menuInflater = menuInflater
+        val menuInflater = menuInflater
         menuInflater.inflate(R.menu.main_menu, menu)
 
         return true
     }
 
+    @ExperimentalStdlibApi
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when(item.itemId){
+            R.id.action_export -> {
+                val filesDir: File = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)!!
+                if (!filesDir.exists()) {
+                    if (filesDir.mkdirs()) {
 
+                    }
+                }
+                val file = File(filesDir, "notes_backup.json")
+                try {
+                    if (!file.exists()) {
+                        if (!file.createNewFile()) {
+                            throw IOException("Cant able to create file")
+                        }
+                    }
+                    val os: OutputStream = FileOutputStream(file)
+                    val data: ByteArray = NotesLifecycle.exportNotes().toByteArray()
+                    os.write(data)
+                    os.close()
+                    Log.e("TAG", "File Path= $file")
+                } catch (e: IOException) {
+                    e.printStackTrace()
+                    Toast.makeText(this@MainActivity, getString(R.string.error_export), Toast.LENGTH_SHORT).show()
+                }
+                Toast.makeText(this@MainActivity, getString(R.string.message_export) + "\n" + file, Toast.LENGTH_LONG).show()
+            }
+            R.id.action_import -> {
+                selectFileToImport()
+            }
+            R.id.action_info -> {
+                MaterialAlertDialogBuilder(this@MainActivity)
+                    .setTitle("Notes")
+                    .setPositiveButton(android.R.string.ok) { dialog, which ->
+
+                    }
+                    .show()
+            }
         }
+
         return true
     }
 
     private fun setListeners() {
         val fab = findViewById<FloatingActionButton>(R.id.floatingActionButton)
-
 
         findViewById<RecyclerView>(R.id.recyclerViewNotes)
             .addOnScrollListener(object : RecyclerView.OnScrollListener() {
@@ -95,9 +165,6 @@ class MainActivity : AppCompatActivity() {
             })
 
         findViewById<FloatingActionButton>(R.id.floatingActionButton).setOnClickListener {
-            val view: View = layoutInflater.inflate(R.layout.fragment_add_note_dialog_list_dialog, null)
-            val dialog = BottomSheetDialog(this@MainActivity)
-
             dialog.setContentView(view)
             dialog.show()
 
@@ -107,7 +174,7 @@ class MainActivity : AppCompatActivity() {
 
                 NotesLifecycle.notes.add(0, Note(themeText, contentText))
                 CoroutineScope(Dispatchers.IO).launch {
-                    db.noteDao.insertAll(NotesLifecycle.notes[0])
+                    NotesLifecycle.saveNotes()
                 }
                 adapter.notifyItemInserted(0)
 

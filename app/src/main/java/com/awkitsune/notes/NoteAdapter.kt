@@ -8,7 +8,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.*
 import androidx.recyclerview.widget.RecyclerView;
-import androidx.room.Room
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -40,16 +39,11 @@ class NoteAdapter(context: Context): RecyclerView.Adapter<NoteAdapter.ViewHolder
             }
         }
         holder.itemView.findViewById<Button>(R.id.buttonDeleteItem).setOnClickListener {
+            NotesLifecycle.notes.removeAt(position)
+            this@NoteAdapter.notifyItemRemoved(position)
             CoroutineScope(Dispatchers.IO).launch {
-                val db = Room.databaseBuilder(
-                    inflater.context, AppDatabase::class.java,
-                    "notes-database").build()
-
-                db.noteDao.delete(NotesLifecycle.notes[position])
-                NotesLifecycle.notes.removeAt(position)
+                NotesLifecycle.saveNotes()
             }
-
-            this.notifyDataSetChanged()
         }
     }
 
