@@ -46,6 +46,7 @@ class NotesLifecycle {
             try {
                 var temp = gson.fromJson<ArrayList<Note>>(json, typeOf<ArrayList<Note>>().javaType)
                 notes.addAll(temp)
+                return true
             } catch (ex: Exception) {
                 Log.d("export error", ex.toString())
             }

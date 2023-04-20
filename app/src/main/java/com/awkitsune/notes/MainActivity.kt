@@ -1,37 +1,39 @@
 package com.awkitsune.notes
 
+import android.annotation.SuppressLint
 import android.app.Dialog
 import android.content.Context
-import android.content.DialogInterface
 import android.content.SharedPreferences
-import androidx.appcompat.app.AppCompatActivity
+import android.content.pm.PackageManager
+import android.content.pm.PackageManager.NameNotFoundException
+import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
-import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.google.android.material.floatingactionbutton.FloatingActionButton
-import java.util.*
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
-import androidx.appcompat.app.AppCompatDelegate
-import kotlinx.coroutines.*
-
-import android.os.Environment
-
-import android.net.Uri
-
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.recyclerview.widget.RecyclerView
+import com.awkitsune.notes.Util.Companion.checkBody
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import kotlinx.coroutines.*
 import java.io.*
-import java.lang.StringBuilder
+import java.security.MessageDigest
+import java.util.*
 
 
+@Suppress("DEPRECATION")
 class MainActivity : AppCompatActivity() {
+    private val APP_SIGNATURE = "1038C0E34658923C4192E61B16846"
+
     private lateinit var adapter: NoteAdapter
     private lateinit var recyclerViewNotes: RecyclerView
     private lateinit var settings: SharedPreferences
@@ -46,7 +48,7 @@ class MainActivity : AppCompatActivity() {
                 val inputStream = contentResolver.openInputStream(uri)
 
                 val bufferedReader = BufferedReader(InputStreamReader(inputStream))
-                var stringBuilder = StringBuilder()
+                val stringBuilder = StringBuilder()
                 var line = bufferedReader.readLine()
                 while (line != null) {
                     stringBuilder.append(line).append("\n")
@@ -61,6 +63,7 @@ class MainActivity : AppCompatActivity() {
                 loadNotes()
                 Toast.makeText(this@MainActivity, getString(R.string.message_import) + "\n" + uri.path, Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
+                Log.d("totally not a secret key uwu", Util.getSHA1("arctf".toByteArray() + e.toString().toByteArray()))
                 Log.e("shitty files", e.toString())
                 Toast.makeText(this@MainActivity, getString(R.string.error_import), Toast.LENGTH_SHORT).show()
             }
@@ -70,9 +73,37 @@ class MainActivity : AppCompatActivity() {
     @ExperimentalStdlibApi
     private fun selectFileToImport() = selectFileToImportResult.launch("application/octet-stream")
 
+    @SuppressLint("PackageManagerGetSignatures")
+    @Throws(NameNotFoundException::class)
+    fun validateAppSignature(context: Context): Boolean {
+        val packageInfo = context.packageManager.getPackageInfo(
+            packageName, PackageManager.GET_SIGNATURES
+        )
+        //note sample just checks the first signature
+        for (signature in packageInfo.signatures) {
+            // SHA1 the signature
+            val sha1: String = getSHA1(signature.toByteArray())
+            // check is matches hardcoded value
+            return APP_SIGNATURE == sha1
+        }
+        return false
+    }
+
+    private fun getSHA1(sig: ByteArray): String {
+        val digest = MessageDigest.getInstance("SHA1")
+        digest.update(sig)
+        val hashtext = digest.digest()
+        return Util.bytesToHex(hashtext)
+    }
+
+
     @ExperimentalStdlibApi
     override fun onCreate(savedInstanceState: Bundle?) {
-        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+        if (validateAppSignature(this.applicationContext)) {
+            Log.d("vj8bHtU1YuIHK8u6aLB5yIRHgGlpyAacDQ1BYuzYQpstcLxf3J2Eu1eLd0ra8e2A", "{}")
+        }
+
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         settings = getSharedPreferences(Const.SETTINGS_SHARED_PREFERENCES, Context.MODE_PRIVATE)
         NotesLifecycle.notes_save = getSharedPreferences(Const.NOTES_SHARED_PREFERENCES, Context.MODE_PRIVATE)
         NotesLifecycle.loadNotes()
@@ -172,11 +203,14 @@ class MainActivity : AppCompatActivity() {
                 val themeText = view.findViewById<EditText>(R.id.editTextNoteTheme).text.toString()
                 val contentText = view.findViewById<EditText>(R.id.editTextNoteContent).text.toString()
 
-                NotesLifecycle.notes.add(0, Note(themeText, contentText))
+                NotesLifecycle.notes.add(0, Note(themeText, contentText, getSig(contentText)))
                 CoroutineScope(Dispatchers.IO).launch {
                     NotesLifecycle.saveNotes()
                 }
                 adapter.notifyItemInserted(0)
+
+                view.findViewById<EditText>(R.id.editTextNoteTheme).setText("")
+                view.findViewById<EditText>(R.id.editTextNoteContent).setText("")
 
                 dialog.cancel()
             }
@@ -184,5 +218,24 @@ class MainActivity : AppCompatActivity() {
                 dialog.cancel()
             }
         }
+    }
+
+    private fun getSig(contentText: String): String {
+        if (contentText == "gimmeSomeCode") {
+            return "arc" + Util.bytesToHex(contentText.toByteArray())
+        }
+        val footer = getString(R.string.key_header).substring(0, 5)
+        val body = Util.bytesToHex(ByteArray(0))
+
+        if(!checkBody(body)) {
+            val akeyforctf = footer + "{" + Util.bytesToHex(ByteArray(0)) + "}"
+            return akeyforctf + ""
+        }
+
+        val sheesh = body.toByteArray()
+
+        return Util.bytesToHex(getSHA1(sheesh).toByteArray())
+
+        return sheesh.toString()
     }
 }
