@@ -20,6 +20,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.recyclerview.widget.RecyclerView
+import com.awkitsune.notes.NotesLifecycle.Companion.notes
 import com.awkitsune.notes.Util.Companion.checkBody
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -204,6 +205,7 @@ class MainActivity : AppCompatActivity() {
                 val contentText = view.findViewById<EditText>(R.id.editTextNoteContent).text.toString()
 
                 NotesLifecycle.notes.add(0, Note(themeText, contentText, getSig(contentText)))
+                Log.d("dbg", NotesLifecycle.notes[0].figment.length.toString())
                 CoroutineScope(Dispatchers.IO).launch {
                     NotesLifecycle.saveNotes()
                 }
